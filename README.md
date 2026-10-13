@@ -52,17 +52,19 @@ All 6 intracellular biomarkers reported in **Figure 2C–D** of `PMC10861185` ar
 
 ### C. IEEE-754 Numerical Underflow Stress Test Across Cluster Count $C$ (Experiment 3)
 
-As the number of cell types / single-cell clusters $C$ scales from $6$ to $300$, multiplicative accumulation in `float32` suffers from rank collapse ($\rho = 0.0000$) at $C \ge 80$ and $100\%$ flush-to-zero underflow at $C \ge 200$, whereas our log-domain prefix-sum kernel maintains **$0.0\%$ underflow** across all scales:
+As the number of cell types / single-cell clusters $C$ scales from $6$ to $300$, multiplicative accumulation in `float32` undergoes a four-stage numerical breakdown—first causing **quadratic variance underflow** (`np.std(S)` flushes to `0.0` at $C=80$ because $(10^{-24})^2 = 10^{-48} < 1.40 \times 10^{-45}$), then entering the **denormal / hardware Flush-to-Zero (`FTZ`) regime** ($< 1.18 \times 10^{-38}$ at $C=120$), followed by **partial rank collapse** ($83.0\%$ zero flush, $\rho = 0.6190$ at $C=140$) and **total rank collapse** ($100\%$ flush to `0.0`, $\rho = 0.0000$ at $C \ge 160$)—whereas our log-domain prefix-sum kernel maintains **$0.0\%$ underflow** and $\rho = 1.0000$ across all scales:
 
-| Cell Types / Clusters $C$ | Multiplicative `float32` Underflow Rate | `float32` Rank Correlation $\rho$ | **Log-Domain Underflow Rate (Ours)** | Minimum Score Magnitude ($\log_{10} S_{\min}$) |
-| :---: | :---: | :---: | :---: | :---: |
-| $C = 6$ | $0.00\%$ | `1.0000` | **$0.00\%$** | $10^{-4}$ |
-| $C = 30$ | $0.00\%$ | `1.0000` | **$0.00\%$** | $10^{-12}$ |
-| $C = 50$ | $0.00\%$ | `1.0000` | **$0.00\%$** | $10^{-19}$ |
-| $C = 80$ | $0.00\%$ (top markers flushed) | **`0.0000` (rank collapse)** | **$0.00\%$** | $10^{-29}$ |
-| $C = 120$ | $0.00\%$ (top markers flushed) | **`0.0000` (rank collapse)** | **$0.00\%$** | $10^{-42}$ |
-| $C = 200$ | **$100.00\%$ (total flush to 0.0)** | **`0.0000` (rank collapse)** | **$0.00\%$** | $10^{-68}$ |
-| $C = 300$ | **$100.00\%$ (total flush to 0.0)** | **`0.0000` (rank collapse)** | **$0.00\%$** | $10^{-101}$ |
+| Cell Types / Clusters $C$ | `float32` Hard Zero Rate ($S = 0$) | `float32` Subnormal / Hardware `FTZ` Rate ($< 1.18 \times 10^{-38}$) | `float32` Variance `std(S)` Status | `float32` True Rank Correlation $\rho$ | **Log-Domain Underflow Rate (Ours)** | Minimum Score Magnitude ($\log_{10} S_{\min}$) |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| $C = 6$ | $0.00\%$ | $0.00\%$ | Normal | `1.0000` | **$0.00\%$** | $10^{-4}$ |
+| $C = 30$ | $0.00\%$ | $0.00\%$ | Normal | `1.0000` | **$0.00\%$** | $10^{-12}$ |
+| $C = 50$ | $0.00\%$ | $0.00\%$ | Normal | `1.0000` | **$0.00\%$** | $10^{-19}$ |
+| $C = 80$ | $0.00\%$ | $0.00\%$ | **`std(S) == 0.0` ($S^2$ underflows)** | `1.0000` (`0.0000` if guarded by `std>0`) | **$0.00\%$** | $10^{-29}$ |
+| $C = 120$ | $0.00\%$ | **$95.00\%$ (subnormal / `FTZ` flush)** | **`std(S) == 0.0` ($S^2$ underflows)** | `1.0000` (`0.0000` under `FTZ` / `std>0`) | **$0.00\%$** | $10^{-42}$ |
+| $C = 140$ | **$83.00\%$** | **$100.00\%$** | **`std(S) == 0.0`** | **`0.6190` (partial rank collapse)** | **$0.00\%$** | $10^{-49}$ |
+| $C = 160$ | **$100.00\%$ (total flush to 0.0)** | **$100.00\%$** | **`std(S) == 0.0`** | **`0.0000` (total rank collapse)** | **$0.00\%$** | $10^{-55}$ |
+| $C = 200$ | **$100.00\%$ (total flush to 0.0)** | **$100.00\%$** | **`std(S) == 0.0`** | **`0.0000` (total rank collapse)** | **$0.00\%$** | $10^{-68}$ |
+| $C = 300$ | **$100.00\%$ (total flush to 0.0)** | **$100.00\%$** | **`std(S) == 0.0`** | **`0.0000` (total rank collapse)** | **$0.00\%$** | $10^{-101}$ |
 
 ---
 

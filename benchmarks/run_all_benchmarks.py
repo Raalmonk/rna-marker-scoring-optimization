@@ -278,7 +278,7 @@ def run_part3_underflow_stress_test() -> List[Dict[str, Any]]:
     rng = np.random.default_rng(2026)
     G = 1000
     R = 5
-    C_list = [6, 15, 30, 50, 80, 120, 200, 300]
+    C_list = [6, 15, 30, 50, 80, 120, 140, 160, 200, 300]
     underflow_results = []
 
     for C in C_list:
@@ -312,16 +312,18 @@ def run_part3_underflow_stress_test() -> List[Dict[str, Any]]:
         log_scores = optimized_scoring_convex_numpy(X, return_log=True)[:, 0]
 
         uf_rate_32 = float(np.mean(prod_32 == 0.0))
+        subnormal_rate_32 = float(np.mean(prod_32 < np.float32(1.17549435e-38)))
         uf_rate_64 = float(np.mean(prod_64 == 0.0))
         uf_rate_log = float(np.mean(~np.isfinite(log_scores)))
 
-        # Rank correlation on the 50 planted markers + background
-        rho_32 = float(spearmanr(log_scores, prod_32).statistic) if np.std(prod_32) > 0 else 0.0
-        rho_64 = float(spearmanr(log_scores, prod_64).statistic) if np.std(prod_64) > 0 else 0.0
+        # Use np.ptp (peak-to-peak) instead of np.std(float32), because squaring 1e-24 in float32 underflows to 0!
+        rho_32 = float(spearmanr(log_scores, prod_32).statistic) if np.ptp(prod_32) > 0 else 0.0
+        rho_64 = float(spearmanr(log_scores, prod_64).statistic) if np.ptp(prod_64) > 0 else 0.0
 
         rec = {
             "C": C,
             "float32_underflow_rate": uf_rate_32,
+            "float32_subnormal_ftz_rate": subnormal_rate_32,
             "float64_underflow_rate": uf_rate_64,
             "log_domain_underflow_rate": uf_rate_log,
             "float32_spearman_rho": rho_32,
@@ -330,9 +332,8 @@ def run_part3_underflow_stress_test() -> List[Dict[str, Any]]:
         }
         underflow_results.append(rec)
         print(
-            f"  C={C:3d} | float32 Underflow: {uf_rate_32*100:6.2f}% (rho={rho_32:.4f}) | "
-            f"float64 Underflow: {uf_rate_64*100:6.2f}% (rho={rho_64:.4f}) | "
-            f"Log-Domain Underflow: {uf_rate_log*100:4.1f}% (min score ~ 10^{rec['min_log10_score']:.0f})"
+            f"  C={C:3d} | float32 Zero: {uf_rate_32*100:6.2f}% | Subnormal/FTZ: {subnormal_rate_32*100:6.2f}% (rho={rho_32:.4f}) | "
+            f"Log-Domain Zero: {uf_rate_log*100:4.1f}% (min score ~ 10^{rec['min_log10_score']:.0f})"
         )
 
     return underflow_results
@@ -443,15 +444,15 @@ def generate_summary_plots(
     # Panel C: Numerical Underflow Rate vs Number of Cell Types C
     ax = axes[1, 0]
     C_vals = [r["C"] for r in underflow_results]
-    ax.plot(C_vals, [r["float32_underflow_rate"] * 100 for r in underflow_results], "o-", linewidth=2, color="#ef4444", label="Baseline Multiplicative (float32)")
-    ax.plot(C_vals, [r["float64_underflow_rate"] * 100 for r in underflow_results], "s--", linewidth=2, color="#f97316", label="Baseline Multiplicative (float64)")
+    ax.plot(C_vals, [r["float32_subnormal_ftz_rate"] * 100 for r in underflow_results], "d:", linewidth=2, color="#f97316", label="Multiplicative float32 (Subnormal / FTZ < 1.18e-38)")
+    ax.plot(C_vals, [r["float32_underflow_rate"] * 100 for r in underflow_results], "o-", linewidth=2, color="#ef4444", label="Multiplicative float32 (Hard Zero == 0.0)")
     ax.plot(C_vals, [r["log_domain_underflow_rate"] * 100 for r in underflow_results], "^-", linewidth=2.5, color="#10b981", label="Log-Domain Prefix-Sum (Ours)")
     ax.set_xlabel("Number of Cell Types / Single-Cell Clusters (C)")
-    ax.set_ylabel("Underflow Rate (% Flushed to 0.0)")
+    ax.set_ylabel("Underflow Rate (% of Transcripts)")
     ax.set_title("(C) IEEE-754 Numerical Underflow vs. Cell Cluster Count C")
     ax.set_ylim(-5, 105)
     ax.grid(True, linestyle="--", alpha=0.4)
-    ax.legend(loc="center right", fontsize=8.5)
+    ax.legend(loc="center right", fontsize=8.0)
 
     # Panel D: 9,000-Sample Classifier Latency vs ROC-AUC on GSE206925
     ax = axes[1, 1]
