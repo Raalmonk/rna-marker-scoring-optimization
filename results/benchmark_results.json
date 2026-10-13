@@ -1,0 +1,690 @@
+{
+  "part1_gse206925_reproduction": {
+    "dataset": "GSE206925_smRNA_3cells",
+    "shape": [
+      60675,
+      3,
+      3
+    ],
+    "sparsity": 0.8010694501671016,
+    "block_zero_rate": 0.7155555555555555,
+    "baseline_loop_ms": 2691.2320419214666,
+    "audit_discrepancy": {
+      "H9": {
+        "unfixed_spearman_rho": 0.9999949772034525,
+        "unfixed_top20_overlap": 0.95,
+        "fixed_target_norm_spearman_rho": 1.0,
+        "fixed_target_norm_top20_overlap": 1.0,
+        "fixed_target_norm_max_abs_err": 1.3877787807814457e-16,
+        "fixed_cell_norm_spearman_rho": 1.0,
+        "fixed_cell_norm_top20_overlap": 1.0,
+        "fixed_cell_norm_max_abs_err": 1.942890293094024e-16
+      },
+      "NSC": {
+        "unfixed_spearman_rho": 0.9999954640059122,
+        "unfixed_top20_overlap": 1.0,
+        "fixed_target_norm_spearman_rho": 1.0,
+        "fixed_target_norm_top20_overlap": 1.0,
+        "fixed_target_norm_max_abs_err": 1.5265566588595902e-16,
+        "fixed_cell_norm_spearman_rho": 1.0,
+        "fixed_cell_norm_top20_overlap": 1.0,
+        "fixed_cell_norm_max_abs_err": 1.6653345369377348e-16
+      },
+      "EC": {
+        "unfixed_spearman_rho": 0.9999998074716007,
+        "unfixed_top20_overlap": 0.95,
+        "fixed_target_norm_spearman_rho": 1.0,
+        "fixed_target_norm_top20_overlap": 1.0,
+        "fixed_target_norm_max_abs_err": 1.1102230246251565e-16,
+        "fixed_cell_norm_spearman_rho": 1.0,
+        "fixed_cell_norm_top20_overlap": 1.0,
+        "fixed_cell_norm_max_abs_err": 1.1102230246251565e-16
+      }
+    },
+    "eq1_max_rel_err": 6.520290944574276e-16,
+    "marker_verification": [
+      {
+        "target_cell": "H9",
+        "ensembl_id": "ENSG00000283490",
+        "symbol": "MIR518C",
+        "H9_mean_rpm": 226.5653741260688,
+        "NSC_mean_rpm": 16.72170396996226,
+        "EC_mean_rpm": 0.5596954687119272,
+        "target_cv": 0.08322218529757461,
+        "mult_score": 0.00023329171638436695,
+        "eq1_score": 1784.9439032065018
+      },
+      {
+        "target_cell": "H9",
+        "ensembl_id": "ENSG00000207869",
+        "symbol": "MIR518B",
+        "H9_mean_rpm": 170.70591842792007,
+        "NSC_mean_rpm": 7.020873937774117,
+        "EC_mean_rpm": 0.5361575019396708,
+        "target_cv": 0.31109141147584163,
+        "mult_score": 0.00017518560402968896,
+        "eq1_score": 2368.228189853182
+      },
+      {
+        "target_cell": "NSC",
+        "ensembl_id": "ENSG00000266782",
+        "symbol": "MIR3663",
+        "H9_mean_rpm": 0.27338133631561157,
+        "NSC_mean_rpm": 53.18826668970354,
+        "EC_mean_rpm": 0.0,
+        "target_cv": 0.18123952312286878,
+        "mult_score": 5.503381249993686e-05,
+        "eq1_score": 8157.656213625559
+      },
+      {
+        "target_cell": "NSC",
+        "ensembl_id": "ENSG00000283682",
+        "symbol": "MIR548AH",
+        "H9_mean_rpm": 5.525520772261941,
+        "NSC_mean_rpm": 33.66539442026686,
+        "EC_mean_rpm": 0.0,
+        "target_cv": 0.0759128850292632,
+        "mult_score": 3.2582699371240405e-05,
+        "eq1_score": 12887.69492218753
+      },
+      {
+        "target_cell": "EC",
+        "ensembl_id": "ENSG00000202111",
+        "symbol": "VTRNA1-2",
+        "H9_mean_rpm": 1.2242362144491485,
+        "NSC_mean_rpm": 2.493161525972155,
+        "EC_mean_rpm": 1065.3218762251267,
+        "target_cv": 1.0637603752565468,
+        "mult_score": 0.0026866561501339105,
+        "eq1_score": 156.4972668404116
+      },
+      {
+        "target_cell": "EC",
+        "ensembl_id": "ENSG00000137801",
+        "symbol": "THBS1",
+        "H9_mean_rpm": 0.30314347767023686,
+        "NSC_mean_rpm": 0.1750167917697143,
+        "EC_mean_rpm": 777.8384892120324,
+        "target_cv": 0.9356719224334987,
+        "mult_score": 0.0019627034408868874,
+        "eq1_score": 213.43158427764928
+      }
+    ]
+  },
+  "part2_speedup_and_memory_scaling": [
+    {
+      "dataset": "GSE206925_smRNA_3cells",
+      "G": 60675,
+      "C": 3,
+      "R": 3,
+      "sparsity": 0.8010694501671016,
+      "block_zero_rate": 0.7155555555555555,
+      "dense_input_mb": 4.166221618652344,
+      "csr_input_mb": 1.523162841796875,
+      "storage_compression_ratio": 2.7352437338462465,
+      "baseline_ms": 2661.317666992545,
+      "baseline_estimated": false,
+      "prompt_vec_ms": 11.835417244583368,
+      "convex_vec_ms": 13.05662514641881,
+      "scipy_csr_ms": 7.696125190705061,
+      "cpp_dense_ms": 8.814542088657618,
+      "cpp_csr_ms": 7.713292259722948,
+      "speedup_prompt": 224.86048543920424,
+      "speedup_convex_np": 203.8289096261981,
+      "speedup_scipy_csr": 345.7996850423811,
+      "speedup_cpp_dense": 301.9235304823239,
+      "speedup_cpp_csr": 345.03005686551495,
+      "prompt_peak_alloc_mb": 17.478395462036133,
+      "convex_peak_alloc_mb": 20.256120681762695,
+      "cpp_peak_alloc_mb": 4.166221618652344,
+      "mem_reduction_convex_vs_prompt": 0.8628698326117573,
+      "mem_reduction_cpp_vs_prompt": 4.195263013322346
+    },
+    {
+      "dataset": "PMC10861185_exRNA_6cells",
+      "G": 27000,
+      "C": 6,
+      "R": 3,
+      "sparsity": 0.8507181069958848,
+      "block_zero_rate": 0.6163271604938272,
+      "dense_input_mb": 3.7078857421875,
+      "csr_input_mb": 1.1715049743652344,
+      "storage_compression_ratio": 3.165061884774815,
+      "baseline_ms": 4350.39108293131,
+      "baseline_estimated": false,
+      "prompt_vec_ms": 10.970416013151407,
+      "convex_vec_ms": 11.993832886219025,
+      "scipy_csr_ms": 6.605249829590321,
+      "cpp_dense_ms": 3.8107079453766346,
+      "cpp_csr_ms": 3.329833038151264,
+      "speedup_prompt": 396.55661897561885,
+      "speedup_convex_np": 362.7190010234286,
+      "speedup_scipy_csr": 658.6262738227323,
+      "speedup_cpp_dense": 1141.6228021907186,
+      "speedup_cpp_csr": 1306.48925429206,
+      "prompt_peak_alloc_mb": 15.349960327148438,
+      "convex_peak_alloc_mb": 17.822128295898438,
+      "cpp_peak_alloc_mb": 3.7078857421875,
+      "mem_reduction_convex_vs_prompt": 0.8612866023796416,
+      "mem_reduction_cpp_vs_prompt": 4.139814814814815
+    },
+    {
+      "dataset": "scRNA_G20000_C15_R50",
+      "G": 20000,
+      "C": 15,
+      "R": 50,
+      "sparsity": 0.9001069333333334,
+      "block_zero_rate": 0.006543333333333333,
+      "dense_input_mb": 114.44091796875,
+      "csr_input_mb": 12.57626724243164,
+      "storage_compression_ratio": 9.099752395737312,
+      "baseline_ms": 45158.90832990408,
+      "baseline_estimated": true,
+      "prompt_vec_ms": 58.71524987742305,
+      "convex_vec_ms": 46.746165957301855,
+      "scipy_csr_ms": 28.774917125701904,
+      "cpp_dense_ms": 5.033083725720644,
+      "cpp_csr_ms": 3.8869576528668404,
+      "speedup_prompt": 769.1171956890266,
+      "speedup_convex_np": 966.0451804999883,
+      "speedup_scipy_csr": 1569.3844792890093,
+      "speedup_cpp_dense": 8972.41349257272,
+      "speedup_cpp_csr": 11618.060283367624,
+      "prompt_peak_alloc_mb": 236.0983123779297,
+      "convex_peak_alloc_mb": 121.30859375,
+      "cpp_peak_alloc_mb": 6.866455078125,
+      "mem_reduction_convex_vs_prompt": 1.9462620501932055,
+      "mem_reduction_cpp_vs_prompt": 34.38430888888889
+    },
+    {
+      "dataset": "scRNA_G20000_C30_R100",
+      "G": 20000,
+      "C": 30,
+      "R": 100,
+      "sparsity": 0.90015895,
+      "block_zero_rate": 0.002935,
+      "dense_input_mb": 457.763671875,
+      "csr_input_mb": 47.992427825927734,
+      "storage_compression_ratio": 9.53824785725249,
+      "baseline_ms": 178196.77332416177,
+      "baseline_estimated": true,
+      "prompt_vec_ms": 171.00995779037476,
+      "convex_vec_ms": 122.60774988681078,
+      "scipy_csr_ms": 62.14595818892121,
+      "cpp_dense_ms": 8.824937511235476,
+      "cpp_csr_ms": 4.7963750548660755,
+      "speedup_prompt": 1042.0257137458432,
+      "speedup_convex_np": 1453.389149451562,
+      "speedup_scipy_csr": 2867.3911951353416,
+      "speedup_cpp_dense": 20192.411911958632,
+      "speedup_cpp_csr": 37152.3851420617,
+      "prompt_peak_alloc_mb": 929.89599609375,
+      "convex_peak_alloc_mb": 471.497802734375,
+      "cpp_peak_alloc_mb": 13.73291015625,
+      "mem_reduction_convex_vs_prompt": 1.9722170298588224,
+      "mem_reduction_cpp_vs_prompt": 67.71296
+    },
+    {
+      "dataset": "scRNA_G25000_C60_R100",
+      "G": 25000,
+      "C": 60,
+      "R": 100,
+      "sparsity": 0.92029142,
+      "block_zero_rate": 0.004954,
+      "dense_input_mb": 1144.4091796875,
+      "csr_input_mb": 96.94128036499023,
+      "storage_compression_ratio": 11.805179128836807,
+      "baseline_ms": 791861.4145368338,
+      "baseline_estimated": true,
+      "prompt_vec_ms": 2457.0401669479907,
+      "convex_vec_ms": 309.07145887613297,
+      "scipy_csr_ms": 145.38954105228186,
+      "cpp_dense_ms": 20.097624976187944,
+      "cpp_csr_ms": 10.289667174220085,
+      "speedup_prompt": 322.28264933920207,
+      "speedup_convex_np": 2562.0657999811924,
+      "speedup_scipy_csr": 5446.481286106279,
+      "speedup_cpp_dense": 39400.74588291137,
+      "speedup_cpp_csr": 76956.95119476531,
+      "prompt_peak_alloc_mb": 2324.6446838378906,
+      "convex_peak_alloc_mb": 1178.74267578125,
+      "cpp_peak_alloc_mb": 34.332275390625,
+      "mem_reduction_convex_vs_prompt": 1.9721392392085548,
+      "mem_reduction_cpp_vs_prompt": 67.710184
+    },
+    {
+      "dataset": "scRNA_G25000_C100_R200",
+      "G": 25000,
+      "C": 100,
+      "R": 200,
+      "sparsity": 0.950304112,
+      "block_zero_rate": 0.0079568,
+      "dense_input_mb": 3814.697265625,
+      "csr_input_mb": 199.11151504516602,
+      "storage_compression_ratio": 19.158596953871214,
+      "baseline_ms": 1747892.3687478527,
+      "baseline_estimated": true,
+      "prompt_vec_ms": 16945.108375046402,
+      "convex_vec_ms": 5878.356583882123,
+      "scipy_csr_ms": 272.9912078939378,
+      "cpp_dense_ms": 2002.5268329773098,
+      "cpp_csr_ms": 35.426707938313484,
+      "speedup_prompt": 103.15026201436532,
+      "speedup_convex_np": 297.34371227842865,
+      "speedup_scipy_csr": 6402.742352885378,
+      "speedup_cpp_dense": 872.8434196055828,
+      "speedup_cpp_csr": 49338.26681811244,
+      "prompt_peak_alloc_mb": 7689.061950683594,
+      "convex_peak_alloc_mb": 3871.9189453125,
+      "cpp_peak_alloc_mb": 57.220458984375,
+      "mem_reduction_convex_vs_prompt": 1.9858530251497852,
+      "mem_reduction_cpp_vs_prompt": 134.37609706666666
+    }
+  ],
+  "part3_underflow_stress_test": [
+    {
+      "C": 6,
+      "float32_underflow_rate": 0.0,
+      "float64_underflow_rate": 0.0,
+      "log_domain_underflow_rate": 0.0,
+      "float32_spearman_rho": 1.0,
+      "float64_spearman_rho": 1.0,
+      "min_log10_score": -3.6174163942881745
+    },
+    {
+      "C": 15,
+      "float32_underflow_rate": 0.0,
+      "float64_underflow_rate": 0.0,
+      "log_domain_underflow_rate": 0.0,
+      "float32_spearman_rho": 1.0,
+      "float64_spearman_rho": 1.0,
+      "min_log10_score": -7.00307444364699
+    },
+    {
+      "C": 30,
+      "float32_underflow_rate": 0.0,
+      "float64_underflow_rate": 0.0,
+      "log_domain_underflow_rate": 0.0,
+      "float32_spearman_rho": 1.0,
+      "float64_spearman_rho": 1.0,
+      "min_log10_score": -11.851327759533298
+    },
+    {
+      "C": 50,
+      "float32_underflow_rate": 0.0,
+      "float64_underflow_rate": 0.0,
+      "log_domain_underflow_rate": 0.0,
+      "float32_spearman_rho": 1.0,
+      "float64_spearman_rho": 1.0,
+      "min_log10_score": -18.919757132182898
+    },
+    {
+      "C": 80,
+      "float32_underflow_rate": 0.0,
+      "float64_underflow_rate": 0.0,
+      "log_domain_underflow_rate": 0.0,
+      "float32_spearman_rho": 0.0,
+      "float64_spearman_rho": 1.0,
+      "min_log10_score": -28.97650355940335
+    },
+    {
+      "C": 120,
+      "float32_underflow_rate": 0.0,
+      "float64_underflow_rate": 0.0,
+      "log_domain_underflow_rate": 0.0,
+      "float32_spearman_rho": 0.0,
+      "float64_spearman_rho": 1.0,
+      "min_log10_score": -42.36069412263136
+    },
+    {
+      "C": 200,
+      "float32_underflow_rate": 1.0,
+      "float64_underflow_rate": 0.0,
+      "log_domain_underflow_rate": 0.0,
+      "float32_spearman_rho": 0.0,
+      "float64_spearman_rho": 1.0,
+      "min_log10_score": -68.18884714672353
+    },
+    {
+      "C": 300,
+      "float32_underflow_rate": 1.0,
+      "float64_underflow_rate": 0.0,
+      "log_domain_underflow_rate": 0.0,
+      "float32_spearman_rho": 0.0,
+      "float64_spearman_rho": 1.0,
+      "min_log10_score": -101.17343686214679
+    }
+  ],
+  "part4_classifier_9000_samples": [
+    {
+      "feature_set": "MF (Top Biomarkers)",
+      "model_name": "MLP (Paper GridSearchCV 3-Fold)",
+      "train_time_ms": 13697.931041009724,
+      "infer_time_ms": 1.7408751882612705,
+      "total_time_ms": 13699.671916197985,
+      "speedup_vs_mlp_grid": 1.0,
+      "speedup_vs_mlp_single": 0.03604563208432497,
+      "accuracy": 0.9961111111111111,
+      "macro_roc_auc": 0.9998685185185185,
+      "macro_pr_auc": 0.9997455396300996,
+      "per_cell_roc_auc": {
+        "H9": 0.9997722222222223,
+        "NSC": 0.9998347222222222,
+        "EC": 0.9999986111111111
+      },
+      "per_cell_pr_auc": {
+        "H9": 0.999578565610085,
+        "NSC": 0.9996608264360649,
+        "EC": 0.9999972268441486
+      }
+    },
+    {
+      "feature_set": "MF (Top Biomarkers)",
+      "model_name": "MLP (Paper Optimal 3x3 Identity, Adam)",
+      "train_time_ms": 493.27358370646834,
+      "infer_time_ms": 0.5397498607635498,
+      "total_time_ms": 493.8133335672319,
+      "speedup_vs_mlp_grid": 27.742612410308272,
+      "speedup_vs_mlp_single": 1.0,
+      "accuracy": 0.9916666666666667,
+      "macro_roc_auc": 0.9996949074074074,
+      "macro_pr_auc": 0.9994359036634691,
+      "per_cell_roc_auc": {
+        "H9": 0.9994375,
+        "NSC": 0.9996472222222221,
+        "EC": 1.0
+      },
+      "per_cell_pr_auc": {
+        "H9": 0.9989886699041877,
+        "NSC": 0.9993190410862198,
+        "EC": 1.0
+      }
+    },
+    {
+      "feature_set": "MF (Top Biomarkers)",
+      "model_name": "HistGradientBoosting (Light GBDT)",
+      "train_time_ms": 830.2676659077406,
+      "infer_time_ms": 12.031333986669779,
+      "total_time_ms": 842.2989998944104,
+      "speedup_vs_mlp_grid": 16.264618523725375,
+      "speedup_vs_mlp_single": 0.5862684552981017,
+      "accuracy": 0.9961111111111111,
+      "macro_roc_auc": 0.9999712962962963,
+      "macro_pr_auc": 0.9999429524553131,
+      "per_cell_roc_auc": {
+        "H9": 0.9999555555555555,
+        "NSC": 0.9999583333333334,
+        "EC": 1.0
+      },
+      "per_cell_pr_auc": {
+        "H9": 0.9999120596335,
+        "NSC": 0.9999167977324388,
+        "EC": 1.0
+      }
+    },
+    {
+      "feature_set": "MF (Top Biomarkers)",
+      "model_name": "Sklearn Shrinkage LDA (LSQR/Auto)",
+      "train_time_ms": 4.483083263039589,
+      "infer_time_ms": 0.38616685196757317,
+      "total_time_ms": 4.869250115007162,
+      "speedup_vs_mlp_grid": 2813.5075407145796,
+      "speedup_vs_mlp_single": 101.41465767907171,
+      "accuracy": 0.9933333333333333,
+      "macro_roc_auc": 0.9997342592592592,
+      "macro_pr_auc": 0.9994938111937413,
+      "per_cell_roc_auc": {
+        "H9": 0.9995527777777778,
+        "NSC": 0.99965,
+        "EC": 1.0
+      },
+      "per_cell_pr_auc": {
+        "H9": 0.9991630523363806,
+        "NSC": 0.9993183812448431,
+        "EC": 1.0
+      }
+    },
+    {
+      "feature_set": "MF (Top Biomarkers)",
+      "model_name": "Closed-Form Cholesky Shrinkage LDA (Ours)",
+      "train_time_ms": 0.7157295476645231,
+      "infer_time_ms": 0.20347884856164455,
+      "total_time_ms": 0.9192083962261677,
+      "speedup_vs_mlp_grid": 14903.771519540422,
+      "speedup_vs_mlp_single": 537.215864862195,
+      "accuracy": 0.9933333333333333,
+      "macro_roc_auc": 0.9997328703703703,
+      "macro_pr_auc": 0.9994911848836047,
+      "per_cell_roc_auc": {
+        "H9": 0.9995527777777777,
+        "NSC": 0.9996458333333333,
+        "EC": 1.0
+      },
+      "per_cell_pr_auc": {
+        "H9": 0.9991651378809943,
+        "NSC": 0.9993084167698199,
+        "EC": 1.0
+      }
+    },
+    {
+      "feature_set": "C1 (Moderate Control)",
+      "model_name": "MLP (Paper GridSearchCV 3-Fold)",
+      "train_time_ms": 12845.088375266641,
+      "infer_time_ms": 0.764582771807909,
+      "total_time_ms": 12845.85295803845,
+      "speedup_vs_mlp_grid": 1.0,
+      "speedup_vs_mlp_single": 0.07382537216452713,
+      "accuracy": 0.6961111111111111,
+      "macro_roc_auc": 0.8573379629629629,
+      "macro_pr_auc": 0.7211187057171459,
+      "per_cell_roc_auc": {
+        "H9": 0.7876305555555556,
+        "NSC": 0.7851708333333334,
+        "EC": 0.9992125000000001
+      },
+      "per_cell_pr_auc": {
+        "H9": 0.6175525183915644,
+        "NSC": 0.5473537659307964,
+        "EC": 0.9984498328290767
+      }
+    },
+    {
+      "feature_set": "C1 (Moderate Control)",
+      "model_name": "MLP (Paper Optimal 3x3 Identity, Adam)",
+      "train_time_ms": 947.6698343642056,
+      "infer_time_ms": 0.6800410337746143,
+      "total_time_ms": 948.3498753979802,
+      "speedup_vs_mlp_grid": 13.545478616367843,
+      "speedup_vs_mlp_single": 1.0,
+      "accuracy": 0.6727777777777778,
+      "macro_roc_auc": 0.8520268518518518,
+      "macro_pr_auc": 0.7120022390225739,
+      "per_cell_roc_auc": {
+        "H9": 0.7783430555555555,
+        "NSC": 0.7788805555555556,
+        "EC": 0.9988569444444444
+      },
+      "per_cell_pr_auc": {
+        "H9": 0.5926918692927627,
+        "NSC": 0.5455104835553807,
+        "EC": 0.9978043642195784
+      }
+    },
+    {
+      "feature_set": "C1 (Moderate Control)",
+      "model_name": "HistGradientBoosting (Light GBDT)",
+      "train_time_ms": 1034.5704997889698,
+      "infer_time_ms": 11.21137524023652,
+      "total_time_ms": 1045.7818750292063,
+      "speedup_vs_mlp_grid": 12.283491677152746,
+      "speedup_vs_mlp_single": 0.9068333445456731,
+      "accuracy": 0.735,
+      "macro_roc_auc": 0.8859212962962962,
+      "macro_pr_auc": 0.7689492216664447,
+      "per_cell_roc_auc": {
+        "H9": 0.8291902777777778,
+        "NSC": 0.8286111111111112,
+        "EC": 0.9999625
+      },
+      "per_cell_pr_auc": {
+        "H9": 0.6846607025435805,
+        "NSC": 0.6222614853625277,
+        "EC": 0.9999254770932262
+      }
+    },
+    {
+      "feature_set": "C1 (Moderate Control)",
+      "model_name": "Sklearn Shrinkage LDA (LSQR/Auto)",
+      "train_time_ms": 4.456708673387766,
+      "infer_time_ms": 0.3690414596349001,
+      "total_time_ms": 4.825750133022666,
+      "speedup_vs_mlp_grid": 2661.9390983661015,
+      "speedup_vs_mlp_single": 196.51864461618322,
+      "accuracy": 0.6833333333333333,
+      "macro_roc_auc": 0.8578648148148149,
+      "macro_pr_auc": 0.722982503804316,
+      "per_cell_roc_auc": {
+        "H9": 0.7855083333333334,
+        "NSC": 0.7892541666666668,
+        "EC": 0.9988319444444445
+      },
+      "per_cell_pr_auc": {
+        "H9": 0.6170626218872716,
+        "NSC": 0.5541243011967847,
+        "EC": 0.9977605883288911
+      }
+    },
+    {
+      "feature_set": "C1 (Moderate Control)",
+      "model_name": "Closed-Form Cholesky Shrinkage LDA (Ours)",
+      "train_time_ms": 0.6388125475496054,
+      "infer_time_ms": 0.18974998965859413,
+      "total_time_ms": 0.8285625372081995,
+      "speedup_vs_mlp_grid": 15503.782009408627,
+      "speedup_vs_mlp_single": 1144.5724768022922,
+      "accuracy": 0.6844444444444444,
+      "macro_roc_auc": 0.857762962962963,
+      "macro_pr_auc": 0.7228435643586556,
+      "per_cell_roc_auc": {
+        "H9": 0.7850847222222223,
+        "NSC": 0.7893972222222221,
+        "EC": 0.9988069444444444
+      },
+      "per_cell_pr_auc": {
+        "H9": 0.6167929801237764,
+        "NSC": 0.5540209599825789,
+        "EC": 0.9977167529696116
+      }
+    },
+    {
+      "feature_set": "C2 (Random Non-Markers)",
+      "model_name": "MLP (Paper GridSearchCV 3-Fold)",
+      "train_time_ms": 10897.21191721037,
+      "infer_time_ms": 0.8368748240172863,
+      "total_time_ms": 10898.048792034388,
+      "speedup_vs_mlp_grid": 1.0,
+      "speedup_vs_mlp_single": 0.07339319928712511,
+      "accuracy": 0.565,
+      "macro_roc_auc": 0.7407328703703704,
+      "macro_pr_auc": 0.5975087441870263,
+      "per_cell_roc_auc": {
+        "H9": 0.6990027777777778,
+        "NSC": 0.7879791666666667,
+        "EC": 0.7352166666666666
+      },
+      "per_cell_pr_auc": {
+        "H9": 0.5292128631387399,
+        "NSC": 0.5832079119385293,
+        "EC": 0.6801054574838095
+      }
+    },
+    {
+      "feature_set": "C2 (Random Non-Markers)",
+      "model_name": "MLP (Paper Optimal 3x3 Identity, Adam)",
+      "train_time_ms": 799.2663341574371,
+      "infer_time_ms": 0.5763326771557331,
+      "total_time_ms": 799.8426668345928,
+      "speedup_vs_mlp_grid": 13.625240617837783,
+      "speedup_vs_mlp_single": 1.0,
+      "accuracy": 0.5283333333333333,
+      "macro_roc_auc": 0.7248023148148147,
+      "macro_pr_auc": 0.5729887082297426,
+      "per_cell_roc_auc": {
+        "H9": 0.6592,
+        "NSC": 0.7835916666666666,
+        "EC": 0.7316152777777778
+      },
+      "per_cell_pr_auc": {
+        "H9": 0.47962460801886,
+        "NSC": 0.5829519980566563,
+        "EC": 0.6563895186137115
+      }
+    },
+    {
+      "feature_set": "C2 (Random Non-Markers)",
+      "model_name": "HistGradientBoosting (Light GBDT)",
+      "train_time_ms": 1001.6504172235727,
+      "infer_time_ms": 16.094707883894444,
+      "total_time_ms": 1017.7451251074672,
+      "speedup_vs_mlp_grid": 10.708033399701742,
+      "speedup_vs_mlp_single": 0.7858968292775018,
+      "accuracy": 0.5811111111111111,
+      "macro_roc_auc": 0.7532532407407407,
+      "macro_pr_auc": 0.6135553795052086,
+      "per_cell_roc_auc": {
+        "H9": 0.7138854166666666,
+        "NSC": 0.7898729166666667,
+        "EC": 0.7560013888888889
+      },
+      "per_cell_pr_auc": {
+        "H9": 0.5502904752342029,
+        "NSC": 0.5867963725363552,
+        "EC": 0.7035792907450674
+      }
+    },
+    {
+      "feature_set": "C2 (Random Non-Markers)",
+      "model_name": "Sklearn Shrinkage LDA (LSQR/Auto)",
+      "train_time_ms": 4.5324580278247595,
+      "infer_time_ms": 0.4008959513157606,
+      "total_time_ms": 4.93335397914052,
+      "speedup_vs_mlp_grid": 2209.0546995237155,
+      "speedup_vs_mlp_single": 162.12959179830432,
+      "accuracy": 0.525,
+      "macro_roc_auc": 0.7185810185185185,
+      "macro_pr_auc": 0.5675888277268549,
+      "per_cell_roc_auc": {
+        "H9": 0.6408111111111112,
+        "NSC": 0.7827458333333333,
+        "EC": 0.732186111111111
+      },
+      "per_cell_pr_auc": {
+        "H9": 0.4617072814801688,
+        "NSC": 0.5835677463152593,
+        "EC": 0.6574914553851369
+      }
+    },
+    {
+      "feature_set": "C2 (Random Non-Markers)",
+      "model_name": "Closed-Form Cholesky Shrinkage LDA (Ours)",
+      "train_time_ms": 0.7680205162614584,
+      "infer_time_ms": 0.21883356384932995,
+      "total_time_ms": 0.9868540801107883,
+      "speedup_vs_mlp_grid": 11043.222105147426,
+      "speedup_vs_mlp_single": 810.4974007350703,
+      "accuracy": 0.5244444444444445,
+      "macro_roc_auc": 0.7187532407407408,
+      "macro_pr_auc": 0.5676092737333217,
+      "per_cell_roc_auc": {
+        "H9": 0.6415152777777778,
+        "NSC": 0.7828944444444443,
+        "EC": 0.73185
+      },
+      "per_cell_pr_auc": {
+        "H9": 0.4614720758833515,
+        "NSC": 0.5836357001680199,
+        "EC": 0.6577200451485938
+      }
+    }
+  ]
+}
