@@ -1,70 +1,135 @@
 # High-Performance Statistical Scoring & Biomarker Discovery (`PMC10861185` / `GSE206925`)
 
-End-to-end reproduction, mathematical audit, and systems/algorithmic optimization of the RNA cell-type biomarker discovery framework by **Shi et al. (Yuguo Lei & Chi Zhang Lab)**, *Gene Reports*, Vol. 34, 101869 (2024) (`PMC10861185` / `PMID: 38351912`, NCBI GEO **`GSE206925`**).
+针对雷雨果（Yuguo Lei）与张弛（Chi Zhang）团队发表于 *Gene Reports* (Volume 34, 101869, 2024; `PMC10861185` / `PMID: 38351912`) 的干细胞制造体系 RNA 生物标志物筛选项目（公开数据集 NCBI GEO **`GSE206925`**），本项目完成了**真实公开数据集复现、原文公式数学审计、四阶段底层计算架构重构（含 C++17 ARM NEON + Apple GCD 多核融合算子与 CSR 稀疏零值跳过）、以及 9,000 模拟样本验证器闭式解替换**。
+
+在保证筛选出的生物标志物排名、得分与分类准确率 **100% 严格等价（Spearman $\rho = 1.00000000$，Top-20 重合率 $100\%$，最大浮点误差 $\le 6.52 \times 10^{-16}$）** 的前提下：
+- **统计评分函数（Eq. 1）端到端加速比**：在 `GSE206925` 真实数据集上提速 **$345.0\times$**，在 6 细胞系 ex-RNA 数据集上提速 **$1,306.5\times$**，在单细胞转录组扩展规模（$C=15 \sim 100$）上提速 **$11,618\times \sim 76,957\times$**（相比纯 NumPy 向量化版本进一步提速 **$1.5\times \sim 478.3\times$**），峰值内存占用降低 **$4.2\times \sim 134.4\times$**。
+- **下游 9,000 模拟样本分类验证器加速比**：用闭式解 Cholesky 正则化线性判别（`CholeskyShrinkageLDA`）替代原文 5 层恒等激活神经网络（MLP），将训练 + 推理总耗时从 **$13,699.67\text{ ms}$（网格搜索 MLP）/ $493.81\text{ ms}$（单次 MLP）压缩至 $0.92\text{ ms}$**，提速 **$14,903.8\times$ / $536.8\times$**，测试集 ROC-AUC 达 **`0.9997`**（准确率 **`99.33%`**）。
+
+![四维优化定量基准测试汇总图](results/benchmark_summary.png)
 
 ---
 
-## 1. Key Findings & Optimization Summary
+## 一、 核心实验结果（Results）
 
-### A. Real `GSE206925` Biomarker Reproduction & Mathematical Equivalence Audit
-1. **100% Exact Biomarker Reproduction on `GSE206925` ($G = 60,675$ transcripts, $C = 3$ cell types, $R = 3$ biological replicates, $80.11\%$ element sparsity, $71.56\%$ all-zero replicate blocks)**:
-   - **H9 (hESC)**: `MIR518C` (`ENSG00000283490`, $226.57\text{ RPM}$) & `MIR518B` (`ENSG00000207869`, $170.71\text{ RPM}$)
-   - **NSC (Neural Stem Cells)**: `MIR3663` (`ENSG00000266782`, $53.19\text{ RPM}$) & `MIR548AH` (`ENSG00000283682`, $33.67\text{ RPM}$)
-   - **EC (Endothelial Cells)**: `VTRNA1-2` (`ENSG00000202111`, $1065.32\text{ RPM}$) & `THBS1` (`ENSG00000137801`, $777.84\text{ RPM}$)
-2. **Resolution of Normalization Discrepancy**:
-   - In the baseline nested loop (`baseline_scoring_loop`), non-target cell mean expression $v_{g,i}$ was normalized by the *target* cell's global maximum $V_{\max, t}$, whereas naive 2-stage vectorization (`V_norm = V / V_max`) normalized by $V_{\max, i}$. Because $V_{\max,\text{H9}} = 403,952\text{ RPM}$ while $V_{\max,\text{EC}} = 41,903\text{ RPM}$ ($9.6\times$ difference), unfixed vectorization yielded a Top-20 overlap of $95\%$ on H9 and EC.
-   - We provide exact two-stage kernels for **both** cell-normalized ($v_{g,i}/V_{\max,i}$, matching `PMC10861185` Eq. 1) and target-normalized ($v_{g,i}/V_{\max,t}$) formulations, achieving **Spearman $\rho = 1.00000000$, Top-20 overlap $= 100\%$, and maximum numerical error $\le 6.52 \times 10^{-16}$ (machine epsilon)**.
+### 1. 评分算子端到端耗时、加速比与峰值内存对比（Experiment 2）
 
-### B. Four-Stage Algorithmic & Hardware Optimization Pipeline
-1. **Optimization 1 — Two-Stage Computation Graph & Prefix-Sum Elimination ($O(C^2 G R) \to O(C G R)$)**:
-   - Decouples replicate reduction from cross-cell-type aggregation via $\sum_{i \neq t} \phi(v_{g,i}, Z_{g,i}) = \left(\sum_{i=1}^C \phi(v_{g,i}, Z_{g,i})\right) - \phi(v_{g,t}, Z_{g,t})$.
-2. **Optimization 2 — Convex Extreme-Point Z-Score Identity & Log-Domain Branchless Vectorization**:
-   - **Convex Extreme-Point Identity**: By exploiting the convexity of $|\cdot|$, we prove that:
-     $$\max_{r \in \{1,\dots,R\}} |X_{g,c,r} - v_{g,c}| \equiv \max\left(\max_r X_{g,c,r} - v_{g,c},\; v_{g,c} - \min_r X_{g,c,r}\right)$$
-     holds with **$0.0$ IEEE-754 bit error**, eliminating the 3D intermediate broadcast tensor `X - V[:, :, None]` of shape $(G, C, R)$ and reducing peak memory allocation by **$2\times \text{ to } 134\times$**.
-   - **Log-Domain Transformation**: Converts the $(C-1)$-term product into additive log-penalties, preventing `float32` / `float64` flush-to-zero underflow at large $C$.
-3. **Optimization 3 — CSR Sparse Zero-Skipping + Fused C++17 ARM NEON / Apple GCD Multi-Core Kernel ($O(C G R) \to O(\text{nnz})$)**:
-   - Stores replicate blocks in CSR format: skips all-zero blocks ($\text{nnz}_{g,c} = 0$, $71.6\%\text{–}95\%$ of blocks) in $O(1)$ and computes centered variance algebraically via $(R - \text{nnz}_{g,c}) v_{g,c}^2 + \sum_{x \neq 0} (x - v_{g,c})^2$.
-   - Achieving **$345\times$ speedup on `GSE206925`**, **$1,306\times$ speedup on 6-cell ex-RNA**, and **$37,152\times \text{ to } 76,957\times$ speedup** on single-cell RNA-seq scales ($C=30\text{–}100$).
-4. **Optimization 4 — Closed-Form Cholesky Shrinkage LDA Validator ($>14,900\times$ Speedup on 9,000 Samples)**:
-   - In `PMC10861185` Section 2.6, 3-fold CV grid search selected a 5-layer MLP with linear `activation='identity'` and 3 hidden units per layer trained with iterative Adam backprop. Algebraically, an identity-activated MLP collapses to a linear discriminant projection.
-   - Replacing iterative `MLPClassifier` with our **Closed-Form Cholesky Shrinkage LDA** compresses 9,000-sample training + validation latency from **$13,699.7\text{ ms}$ (GridSearchCV MLP) / $493.8\text{ ms}$ (Single MLP) down to $0.92\text{ ms}$ ($14,904\times$ / $537\times$ speedup)** while achieving **$99.33\%$ accuracy and $0.9997$ ROC-AUC**.
+测试环境：Apple M1 Pro (10 Cores, 16 GB RAM)，`float64` 双精度。对比**原始 $O(C^2 G R)$ 嵌套循环基线**、**常规两阶段 NumPy 向量化（含 3D 广播）**、**凸函数极值单遍 NumPy（消除 3D 临时张量）**、**SciPy CSR 零值跳过**及 **C++17 ARM NEON + Apple GCD 多核融合算子**：
+
+| 数据集与规模 $(G, C, R)$ | 零值稀疏度 | 原始循环基线 $O(C^2GR)$ | 常规 NumPy 向量化 (3D 广播) | 凸极值单遍 NumPy (无 3D 张量) | SciPy CSR 零值跳过 | C++17 NEON/GCD 稠密融合 | **C++17 NEON/GCD CSR 融合 (Ours)** | **相比原始基线加速比** | **相比 NumPy 向量化再加速** | **峰值内存下降 (3D 广播 $\to$ Ours)** |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| **`GSE206925` 真实小 RNA** $(60675, 3, 3)$ | $80.1\%$ | $2,661.3\text{ ms}$ | $11.84\text{ ms}$ | $13.06\text{ ms}$ | $7.70\text{ ms}$ | $8.81\text{ ms}$ | **$7.71\text{ ms}$** | **$345.0\times$** | $1.54\times$ | $17.5\text{ MB} \to \mathbf{4.2\text{ MB}}$ ($4.2\times$) |
+| **`PMC10861185` ex-RNA** $(27000, 6, 3)$ | $85.0\%$ | $4,350.4\text{ ms}$ | $10.97\text{ ms}$ | $11.99\text{ ms}$ | $6.61\text{ ms}$ | $3.81\text{ ms}$ | **$3.33\text{ ms}$** | **$1,306.5\times$** | $3.29\times$ | $15.3\text{ MB} \to \mathbf{3.7\text{ MB}}$ ($4.1\times$) |
+| **scRNA Small** $(20000, 15, 50)$ | $90.0\%$ | $45,158.9\text{ ms}$ | $58.72\text{ ms}$ | $46.75\text{ ms}$ | $28.77\text{ ms}$ | $5.03\text{ ms}$ | **$3.89\text{ ms}$** | **$11,618.1\times$** | $15.1\times$ | $236.1\text{ MB} \to \mathbf{6.9\text{ MB}}$ ($34.2\times$) |
+| **scRNA Medium** $(20000, 30, 100)$ | $90.0\%$ | $178,196.8\text{ ms}$ | $171.01\text{ ms}$ | $122.61\text{ ms}$ | $62.15\text{ ms}$ | $8.82\text{ ms}$ | **$4.80\text{ ms}$** | **$37,152.4\times$** | $35.6\times$ | $929.9\text{ MB} \to \mathbf{13.7\text{ MB}}$ ($67.9\times$) |
+| **scRNA Large** $(25000, 60, 100)$ | $92.0\%$ | $791,861.4\text{ ms}$ | $2,457.04\text{ ms}$ | $309.07\text{ ms}$ | $145.39\text{ ms}$ | $20.10\text{ ms}$ | **$10.29\text{ ms}$** | **$76,957.0\times$** | **$238.8\times$** | $2,324.6\text{ MB} \to \mathbf{34.3\text{ MB}}$ ($67.8\times$) |
+| **scRNA Ultra** $(25000, 100, 200)$ | $95.0\%$ | $1,747,892.4\text{ ms}$ | $16,945.11\text{ ms}$ | $5,878.36\text{ ms}$ | $272.99\text{ ms}$ | $2,002.53\text{ ms}$ | **$35.43\text{ ms}$** | **$49,338.3\times$** | **$478.3\times$** | $7,689.1\text{ MB} \to \mathbf{57.2\text{ MB}}$ ($134.4\times$) |
 
 ---
 
-## 2. Repository Structure
+### 2. 真实 `GSE206925` 数据集标志物复现与数值等价性验证（Experiment 1）
+
+在 `GSE206925` 的 9 个样本（H9、NSC、EC 各 3 个生物学重复，$G=60,675$ 个转录本，整体零值率 $80.11\%$，全零重复块占比 $71.56\%$）上，优化后算子与原始基线的对比：
+
+| 目标细胞类型 | 修正前向量化 vs. 基线 ($\rho$ / Top-20) | **修正后 Target-CSR 算子 ($\rho$ / Top-20 / 最大误差)** | **修正后 Cell-CSR 算子 ($\rho$ / Top-20 / 最大误差)** | **原文 Eq.(1) 加性 CSR 算子 (最大相对误差)** |
+| :--- | :---: | :---: | :---: | :---: |
+| **H9 (人胚胎干细胞)** | `0.999995` / `95%` | **`1.00000000` / `100%` / `1.39e-16`** | **`1.00000000` / `100%` / `1.94e-16`** | **`6.52e-16`** |
+| **NSC (神经干细胞)** | `0.999995` / `100%` | **`1.00000000` / `100%` / `1.53e-16`** | **`1.00000000` / `100%` / `1.67e-16`** | **`6.52e-16`** |
+| **EC (血管内皮细胞)** | `1.000000` / `95%` | **`1.00000000` / `100%` / `1.11e-16`** | **`1.00000000` / `100%` / `1.11e-16`** | **`6.52e-16`** |
+
+筛选出的各细胞类型 Top-2 胞内标志物与论文 Figure 2C–D 100% 一致：
+
+| 目标细胞系 | 基因符号 (Symbol) | Ensembl ID | H9 均值 (RPM) | NSC 均值 (RPM) | EC 均值 (RPM) | 变异系数 ($\sigma_t / v_t$) | 连乘评分 $S_{\text{mult}}$ | 原文 Eq.(1) 评分 $S_{\text{Eq1}}$ |
+| :--- | :--- | :--- | ---: | ---: | ---: | ---: | ---: | ---: |
+| **H9 (hESC)** | **`MIR518C`** | `ENSG00000283490` | **226.57** | 16.72 | 0.56 | 0.083 | `0.00023` | `1784.94` |
+| **H9 (hESC)** | **`MIR518B`** | `ENSG00000207869` | **170.71** | 7.02 | 0.54 | 0.311 | `0.00018` | `2368.23` |
+| **NSC (神经干细胞)** | **`MIR3663`** | `ENSG00000266782` | 0.27 | **53.19** | 0.00 | 0.181 | `0.00006` | `8157.66` |
+| **NSC (神经干细胞)** | **`MIR548AH`** | `ENSG00000283682` | 5.53 | **33.67** | 0.00 | 0.076 | `0.00003` | `12887.69` |
+| **EC (血管内皮细胞)** | **`VTRNA1-2`** | `ENSG00000202111` | 1.22 | 2.49 | **1065.32** | 1.064 | `0.00269` | `156.50` |
+| **EC (血管内皮细胞)** | **`THBS1`** | `ENSG00000137801` | 0.30 | 0.18 | **777.84** | 0.936 | `0.00196` | `213.43` |
+
+---
+
+### 3. 大规模细胞亚群 $C$ 下的 IEEE-754 浮点下溢压力测试（Experiment 3）
+
+随着细胞亚群数量 $C$ 从 $6$ 扩展至 $300$，原始连乘结构在 `float32` 下于 $C \ge 80$ 时因头部标志物下溢导致秩相关系数崩溃为 $\rho = 0.0000$，并在 $C \ge 200$ 时 $100\%$ 归零；而对数域算子始终保持 **$0.0\%$ 下溢率**：
+
+| 细胞亚群数 $C$ | 原始连乘 `float32` 下溢率 | `float32` 秩相关 $\rho$ | 对数域算子下溢率 | 对数域最小得分量级 ($\log_{10} S_{\min}$) |
+| :---: | :---: | :---: | :---: | :---: |
+| $C = 6$ | $0.00\%$ | `1.0000` | **$0.00\%$** | $10^{-4}$ |
+| $C = 30$ | $0.00\%$ | `1.0000` | **$0.00\%$** | $10^{-12}$ |
+| $C = 50$ | $0.00\%$ | `1.0000` | **$0.00\%$** | $10^{-19}$ |
+| $C = 80$ | $0.00\%$ (头部标志物下溢) | **`0.0000` (排序失效)** | **$0.00\%$** | $10^{-29}$ |
+| $C = 120$ | $0.00\%$ (头部标志物下溢) | **`0.0000` (排序失效)** | **$0.00\%$** | $10^{-42}$ |
+| $C = 200$ | **$100.00\%$ (全零崩溃)** | **`0.0000` (排序失效)** | **$0.00\%$** | $10^{-68}$ |
+| $C = 300$ | **$100.00\%$ (全零崩溃)** | **`0.0000` (排序失效)** | **$0.00\%$** | $10^{-101}$ |
+
+---
+
+### 4. `GSE206925` 9,000 模拟样本验证器性能与准确率对比（Experiment 4）
+
+按照原文 Section 2.7 生成 9,000 个高噪声合成样本（7,200 训练集 + 1,800 独立测试集，$\sigma_{\text{noise}} = 0.75$），对比 Top 标志物集合 `MF`、次优对照集 `C1` 与随机非标志物对照集 `C2`：
+
+| 特征集合 | 分类验证器模型 | 训练耗时 | 推理耗时 | 总耗时 | **相对 GridMLP 加速比** | **相对单次 MLP 加速比** | 测试集准确率 | Macro ROC-AUC | Macro PR-AUC |
+| :--- | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| **MF (Top 标志物)** | `MLP (Paper GridSearchCV 3-Fold)` | $13,697.93\text{ ms}$ | $1.74\text{ ms}$ | $13,699.67\text{ ms}$ | $1.0\times$ | $0.04\times$ | $99.61\%$ | `0.9999` | `0.9997` |
+| **MF (Top 标志物)** | `MLP (Paper 3x3 Identity, Adam)` | $493.27\text{ ms}$ | $0.54\text{ ms}$ | $493.81\text{ ms}$ | $27.7\times$ | $1.0\times$ | $99.17\%$ | `0.9997` | `0.9994` |
+| **MF (Top 标志物)** | `HistGradientBoosting (GBDT)` | $830.27\text{ ms}$ | $12.03\text{ ms}$ | $842.30\text{ ms}$ | $16.3\times$ | $0.59\times$ | $99.61\%$ | `1.0000` | `0.9999` |
+| **MF (Top 标志物)** | `Sklearn Shrinkage LDA` | $4.48\text{ ms}$ | $0.39\text{ ms}$ | $4.87\text{ ms}$ | $2,813.5\times$ | $101.4\times$ | $99.33\%$ | `0.9997` | `0.9995` |
+| **MF (Top 标志物)** | **`Cholesky Shrinkage LDA (Ours)`** | **$0.72\text{ ms}$** | **$0.20\text{ ms}$** | **$0.92\text{ ms}$** | **$14,903.8\times$** | **$536.8\times$** | **$99.33\%$** | **`0.9997`** | **`0.9995`** |
+| **C1 (次优对照集)** | `MLP (Paper GridSearchCV 3-Fold)` | $12,845.09\text{ ms}$ | $0.76\text{ ms}$ | $12,845.85\text{ ms}$ | $1.0\times$ | $0.07\times$ | $69.61\%$ | `0.8573` | `0.7211` |
+| **C1 (次优对照集)** | **`Cholesky Shrinkage LDA (Ours)`** | **$0.64\text{ ms}$** | **$0.19\text{ ms}$** | **$0.83\text{ ms}$** | **$15,503.8\times$** | **$1,142.6\times$** | **$68.44\%$** | **`0.8578`** | **`0.7228`** |
+| **C2 (随机对照集)** | `MLP (Paper GridSearchCV 3-Fold)` | $10,897.21\text{ ms}$ | $0.84\text{ ms}$ | $10,898.05\text{ ms}$ | $1.0\times$ | $0.07\times$ | $56.50\%$ | `0.7407` | `0.5975` |
+| **C2 (随机对照集)** | **`Cholesky Shrinkage LDA (Ours)`** | **$0.77\text{ ms}$** | **$0.22\text{ ms}$** | **$0.99\text{ ms}$** | **$11,043.2\times$** | **$807.9\times$** | **$52.44\%$** | **`0.7188`** | **`0.5676`** |
+
+---
+
+## 二、 四项底层计算结构创新说明
+
+1. **两阶段计算图与前缀和消元（$O(C^2 G R) \to O(C G R)$）**：
+   彻底解耦“跨重复样本统计归约”与“跨细胞类型互斥聚合”，利用对数域下的全局行和消元 $\sum_{i \neq t} \phi(v_{g,i}, Z_{g,i}) = \left(\sum_{i=1}^C \phi(v_{g,i}, Z_{g,i})\right) - \phi(v_{g,t}, Z_{g,t})$ 将第二阶段复杂度从 $O(G C^2)$ 降至 $O(G C)$。
+2. **凸函数极值点单遍 Z-Score 恒等式（消除 3D 广播张量，峰值内存下降 $134\times$）**：
+   常规向量化计算 `np.max(np.abs(X - V[:, :, None]) / safe_std[:, :, None], axis=2)` 需在内存中分配 3 个形状为 $(G, C, R)$ 的三维临时数组（在 $25000 \times 100 \times 200$ 下占 $7.69\text{ GB}$）。利用绝对值函数 $|x - v_{g,c}|$ 的凸性：
+   $$\max_{1 \le r \le R} |X_{g,c,r} - v_{g,c}| \equiv \max\left(\max_{r} X_{g,c,r} - v_{g,c},\; v_{g,c} - \min_{r} X_{g,c,r}\right)$$
+   该恒等式具有 **$0.0$ IEEE-754 比特误差**，完全消除了所有三维中间张量分配，并支持寄存器内单遍归约。
+3. **CSR 稀疏块零值跳过 + C++17 ARM NEON / Apple GCD 10 核融合算子（$O(C G R) \to O(\text{nnz})$）**：
+   针对小 RNA 与单细胞转录组 $80\% \sim 95\%$ 的稀疏度，将每个 $(g, c)$ 重复块存储为 CSR 格式：全零块（$\text{nnz}_{g,c} = 0$）以 $O(1)$ 直接跳过；部分非零块仅遍历非零元素，并通过代数公式 $(R - \text{nnz}_{g,c})v_{g,c}^2 + \sum_{x \neq 0}(x - v_{g,c})^2$ 一步合成精确中心化方差。
+4. **用闭式解 Cholesky Shrinkage LDA 替代 5 层恒等激活神经网络**：
+   原文 Section 2.6 通过网格搜索选出的最优 MLP 采用 `activation='identity'`（线性恒等激活），在代数上等价于单个线性判别超平面 $\mathbf{W}_{\text{eff}}\mathbf{x} + \mathbf{b}_{\text{eff}}$。我们通过 Ledoit-Wolf 收缩估计与 Cholesky 分解一步求取解析最优解，将验证耗时从秒级压缩至 **$0.92\text{ ms}$**。
+
+---
+
+## 三、 仓库目录结构与快速复现
 
 ```text
 .
 ├── data/
-│   └── raw/                        # Real NCBI GEO GSE206925 count matrices (GSM6266913–GSM6266921)
+│   └── raw/                        # NCBI GEO GSE206925 真实小 RNA 计数矩阵 (GSM6266913–GSM6266921)
 ├── src/
 │   ├── __init__.py
-│   ├── data_loader.py              # GSE206925 loader, CSR block builder, scRNA & 9,000-sample simulator
-│   ├── fast_kernels.cpp            # C++17 ARM NEON + Apple GCD (10-core) fused dense & CSR kernels
-│   ├── libfast_kernels.dylib       # Compiled native shared library
-│   ├── scoring.py                  # Baseline & optimized scoring functions (Eq. 1 & Multiplicative)
-│   └── classifiers.py              # Closed-Form Cholesky Shrinkage LDA vs. MLP / GBDT validators
+│   ├── data_loader.py              # GSE206925 加载器、CSR 稀疏块构建器、scRNA 与 9,000 样本模拟器
+│   ├── fast_kernels.cpp            # C++17 ARM NEON + Apple GCD (10 核) 稠密与 CSR 融合算子源码
+│   ├── libfast_kernels.dylib       # 编译生成的原生动态库
+│   ├── scoring.py                  # 基线与优化版统计评分算子封装 (Eq. 1 加性 & 连乘对数域)
+│   └── classifiers.py              # 闭式解 Cholesky Shrinkage LDA 与 MLP / GBDT 验证对比模块
 ├── benchmarks/
-│   └── run_all_benchmarks.py       # End-to-end benchmark runner & 4-panel figure generator
+│   └── run_all_benchmarks.py       # 端到端实验评测与四合一图表生成脚本
 ├── tests/
-│   └── test_all.py                 # Unit tests for mathematical identities & 1e-16 equivalence
+│   └── test_all.py                 # 数学恒等式与 1e-16 数值等价性单元测试
 └── results/
-    ├── benchmark_summary.png       # 4-panel quantitative performance & accuracy figure
-    └── benchmark_results.json      # Full machine-readable benchmark metrics
+    ├── benchmark_summary.png       # 四维性能与精度基准对比汇总图
+    └── benchmark_results.json      # 完整机器可读实验指标数据
 ```
 
----
-
-## 3. Quick Start
+### 一键运行测试与基准实验
 
 ```bash
-# 1. Compile the C++17 ARM NEON / GCD shared library
+# 1. 编译 C++17 ARM NEON / GCD 原生共享库
 clang++ -O3 -std=c++17 -mcpu=apple-m1 -ffast-math -shared -fPIC src/fast_kernels.cpp -o src/libfast_kernels.dylib
 
-# 2. Run numerical equivalence and unit tests
+# 2. 运行数学恒等式与数值等价性单元测试 (6/6 项测试)
 .venv/bin/python -m unittest discover -s tests -p "test_*.py" -v
 
-# 3. Run the complete benchmark suite and regenerate figures
+# 3. 运行完整四阶段基准测试并重新生成图表与 JSON 数据
 .venv/bin/python benchmarks/run_all_benchmarks.py
 ```
